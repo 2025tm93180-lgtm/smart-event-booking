@@ -53,7 +53,7 @@ export const EventDetails: React.FC<EventDetailsProps> = ({
                     city: 'Unknown',
                     price: found.price,
                     image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&w=1400&q=85',
-                    tag: found.status === 'Published' ? 'LIVE' : 'DRAFT',
+                    tag: found.status === 'PUBLISHED' ? 'LIVE' : 'DRAFT',
                     description: found.description,
                     gradient: 'linear-gradient(135deg,#41216c,#e05b89)',
                     seats: found.capacity,

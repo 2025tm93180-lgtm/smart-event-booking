@@ -15,7 +15,7 @@ export type EventItem = {
   gradient: string;
   seats: number,
   capacity: number;
-  status: 'Draft' | 'Published' | 'Cancelled';
+  status: 'DRAFT' | 'PUBLISHED' | 'CANCELLED';
 }
 
 export type PaymentStatusEnum = 'PENDING' | 'CONFIRMED' | 'FAILED' | 'CANCELLED';

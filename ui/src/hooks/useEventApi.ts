@@ -1,12 +1,12 @@
 import { useCallback } from 'react';
 import { EventItem } from '../components/adminportal/types';
 
-const EVENT_SERVICE_BASE_URL = 'http://localhost:9092'; // Assuming a port for event service
+const EVENT_SERVICE_BASE_URL = 'http://localhost:9091';
 
 export const useEventApi = () => {
   const fetchEvents = useCallback(async (): Promise<EventItem[]> => {
     try {
-      const response = await fetch(`${EVENT_SERVICE_BASE_URL}/api/v1/events`);
+      const response = await fetch(`${EVENT_SERVICE_BASE_URL}/api/events`);
       if (!response.ok) {
         throw new Error(`Failed to fetch events: ${response.status}`);
       }
@@ -19,7 +19,7 @@ export const useEventApi = () => {
 
   const saveEvent = useCallback(async (event: Omit<EventItem, 'id'>): Promise<EventItem | null> => {
     try {
-      const response = await fetch(`${EVENT_SERVICE_BASE_URL}/api/v1/events`, {
+      const response = await fetch(`${EVENT_SERVICE_BASE_URL}/api/events`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -38,7 +38,7 @@ export const useEventApi = () => {
 
   const updateEvent = useCallback(async (id: string, event: Partial<EventItem>): Promise<EventItem | null> => {
     try {
-      const response = await fetch(`${EVENT_SERVICE_BASE_URL}/api/v1/events/${id}`, {
+      const response = await fetch(`${EVENT_SERVICE_BASE_URL}/api/events/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -55,5 +55,17 @@ export const useEventApi = () => {
     }
   }, []);
 
-  return { fetchEvents, saveEvent, updateEvent };
+  const deleteEvent = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${EVENT_SERVICE_BASE_URL}/api/events/${id}`, {
+        method: 'DELETE',
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('[useEventApi] Error deleting event:', error);
+      return false;
+    }
+  }, []);
+
+  return { fetchEvents, saveEvent, updateEvent, deleteEvent };
 };

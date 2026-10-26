@@ -32,7 +32,7 @@ export const Discover: React.FC<DiscoverProps> = ({ favorites, onToggleFavorite 
           city: 'Unknown',
           price: e.price,
           image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&w=1400&q=85',
-          tag: e.status === 'Published' ? 'LIVE' : 'DRAFT',
+          tag: e.status === 'PUBLISHED' ? 'LIVE' : 'DRAFT',
           description: e.description,
           gradient: 'linear-gradient(135deg,#41216c,#e05b89)',
           seats: e.capacity,

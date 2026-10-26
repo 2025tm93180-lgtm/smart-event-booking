@@ -18,7 +18,7 @@ export const events: EventItem[] = [
         startTime: "",
         duration: "",
         capacity: 0,
-        status: "Draft"
+        status: "DRAFT"
     },
     {
         id: 102,
@@ -37,7 +37,7 @@ export const events: EventItem[] = [
         startTime: "",
         duration: "",
         capacity: 0,
-        status: "Draft"
+        status: "DRAFT"
     },
     {
         id: 103,
@@ -56,7 +56,7 @@ export const events: EventItem[] = [
         startTime: "",
         duration: "",
         capacity: 0,
-        status: "Draft"
+        status: "DRAFT"
     },
     {
         id: 104,
@@ -75,7 +75,7 @@ export const events: EventItem[] = [
         startTime: "",
         duration: "",
         capacity: 0,
-        status: "Draft"
+        status: "DRAFT"
     },
     {
         id: 105,
@@ -94,7 +94,7 @@ export const events: EventItem[] = [
         startTime: "",
         duration: "",
         capacity: 0,
-        status: "Draft"
+        status: "DRAFT"
     },
     {
         id: 106, title: 'Future Founders Summit',
@@ -112,7 +112,7 @@ export const events: EventItem[] = [
         startTime: "",
         duration: "",
         capacity: 0,
-        status: "Draft"
+        status: "DRAFT"
     }
 ]
 

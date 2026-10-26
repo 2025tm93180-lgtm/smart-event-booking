@@ -8,7 +8,7 @@ export type Venue = {
     active: boolean;
 };
 
-export type EventStatus = "Draft" | "Published" | "Cancelled";
+export type EventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED";
 
 export type EventItem = {
     id: string;

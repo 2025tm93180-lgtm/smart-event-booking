@@ -56,17 +56,17 @@ export function EventTable({
                                         >
                                             <Pencil size={14} />
                                         </button>
-                                        {event.status !== "Cancelled" && (
+                                        {event.status !== "CANCELLED" && (
                                             <button
                                                 className="admin-icon-button"
                                                 title={
-                                                    event.status === "Published"
+                                                    event.status === "PUBLISHED"
                                                         ? "Move to draft"
                                                         : "Publish event"
                                                 }
                                                 onClick={() => onToggleStatus(event)}
                                             >
-                                                {event.status === "Published" ? (
+                                                {event.status === "PUBLISHED" ? (
                                                     <ArrowDownRight size={15} />
                                                 ) : (
                                                     <ArrowUpRight size={15} />

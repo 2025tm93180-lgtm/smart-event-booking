@@ -59,6 +59,11 @@ export default function App() {
     if (current && (targetStep ? targetStep >= 5 : current.step >= 4)) notify('Booking confirmed · tickets are ready')
   }
 
+  const updateBookingId = (oldId: string, newId: string) => {
+    setBookings(prev => prev.map(b => b.id === oldId ? { ...b, id: newId } : b));
+    if (activeBooking === oldId) setActiveBooking(newId);
+  }
+
   const handleLogin = (user: User) => {
     dispatch(setUser(user));
     notify(`Welcome back, ${user.name.split(' ')[0]}!`);
@@ -98,7 +103,7 @@ export default function App() {
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/signup" element={<Signup onSignup={handleSignup} />} />
           <Route path="/profile" element={<Profile user={authState.user} isAuthenticated={authState.isAuthenticated} onLogout={handleLogout} />} />
-          <Route path="/event/:id" element={<EventDetails bookings={bookings} startBooking={startBooking} advanceWorkflow={advanceWorkflow} activeBookingId={activeBooking} user={authState.user} />} />
+          <Route path="/event/:id" element={<EventDetails bookings={bookings} startBooking={startBooking} advanceWorkflow={advanceWorkflow} activeBookingId={activeBooking} user={authState.user} updateBookingId={updateBookingId} />} />
         </Routes>
       </Layout>
       {toast && <div className="toast"><Check size={16}/>{toast}</div>}

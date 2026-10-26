@@ -1,12 +1,12 @@
 import { useCallback } from 'react';
 import { Venue } from '../components/adminportal/types';
 
-const VENUE_SERVICE_BASE_URL = 'http://localhost:9093'; // Assuming a port for venue service
+const VENUE_SERVICE_BASE_URL = 'http://localhost:9091';
 
 export const useVenueApi = () => {
   const fetchVenues = useCallback(async (): Promise<Venue[]> => {
     try {
-      const response = await fetch(`${VENUE_SERVICE_BASE_URL}/api/v1/venues`);
+      const response = await fetch(`${VENUE_SERVICE_BASE_URL}/api/venues`);
       if (!response.ok) {
         throw new Error(`Failed to fetch venues: ${response.status}`);
       }
@@ -19,7 +19,7 @@ export const useVenueApi = () => {
 
   const saveVenue = useCallback(async (venue: Omit<Venue, 'id'>): Promise<Venue | null> => {
     try {
-      const response = await fetch(`${VENUE_SERVICE_BASE_URL}/api/v1/venues`, {
+      const response = await fetch(`${VENUE_SERVICE_BASE_URL}/api/venues`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -38,7 +38,7 @@ export const useVenueApi = () => {
 
   const updateVenue = useCallback(async (id: string, venue: Partial<Venue>): Promise<Venue | null> => {
     try {
-      const response = await fetch(`${VENUE_SERVICE_BASE_URL}/api/v1/venues/${id}`, {
+      const response = await fetch(`${VENUE_SERVICE_BASE_URL}/api/venues/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -55,5 +55,17 @@ export const useVenueApi = () => {
     }
   }, []);
 
-  return { fetchVenues, saveVenue, updateVenue };
+  const deleteVenue = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${VENUE_SERVICE_BASE_URL}/api/venues/${id}`, {
+        method: 'DELETE',
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('[useVenueApi] Error deleting venue:', error);
+      return false;
+    }
+  }, []);
+
+  return { fetchVenues, saveVenue, updateVenue, deleteVenue };
 };

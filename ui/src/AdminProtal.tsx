@@ -40,8 +40,8 @@ export default function AdminPortal() {
     const [editingEventId, setEditingEventId] = useState<string | null>(null);
     const [toast, setToast] = useState("");
 
-    const { fetchEvents, saveEvent: apiSaveEvent, updateEvent: apiUpdateEvent } = useEventApi();
-    const { fetchVenues, saveVenue: apiSaveVenue, updateVenue: apiUpdateVenue } = useVenueApi();
+    const { fetchEvents, saveEvent: apiSaveEvent, updateEvent: apiUpdateEvent, deleteEvent: apiDeleteEvent } = useEventApi();
+    const { fetchVenues, saveVenue: apiSaveVenue, updateVenue: apiUpdateVenue, deleteVenue: apiDeleteVenue } = useVenueApi();
 
     useEffect(() => {
         const loadData = async () => {
@@ -56,11 +56,11 @@ export default function AdminPortal() {
     }, [fetchVenues, fetchEvents]);
 
     const publishedEvents = events.filter(
-        (event) => event.status === "Published",
+        (event) => event.status === "PUBLISHED",
     ).length;
 
     const draftEvents = events.filter(
-        (event) => event.status === "Draft",
+        (event) => event.status === "DRAFT",
     ).length;
 
     const activeVenues = venues.filter((venue) => venue.active).length;
@@ -194,7 +194,7 @@ export default function AdminPortal() {
         setEventForm({ ...event });
     }
 
-    function deleteVenue(venue: Venue) {
+    async function deleteVenue(venue: Venue) {
         const hasEvents = events.some(
             (event) => event.venueId === venue.id,
         );
@@ -206,27 +206,37 @@ export default function AdminPortal() {
 
         if (!window.confirm(`Delete ${venue.name}?`)) return;
 
-        setVenues((current) =>
-            current.filter((item) => item.id !== venue.id),
-        );
-        notify("Venue deleted.");
+        const success = await apiDeleteVenue(venue.id);
+        if (success) {
+            setVenues((current) =>
+                current.filter((item) => item.id !== venue.id),
+            );
+            notify("Venue deleted.");
+        } else {
+            notify("Failed to delete venue.");
+        }
     }
 
-    function deleteEvent(event: EventItem) {
+    async function deleteEvent(event: EventItem) {
         if (!window.confirm(`Delete ${event.title}?`)) return;
 
-        setEvents((current) =>
-            current.filter((item) => item.id !== event.id),
-        );
-        notify("Event deleted.");
+        const success = await apiDeleteEvent(event.id);
+        if (success) {
+            setEvents((current) =>
+                current.filter((item) => item.id !== event.id),
+            );
+            notify("Event deleted.");
+        } else {
+            notify("Failed to delete event.");
+        }
     }
 
-    function toggleVenue(venue: Venue) {
+    async function toggleVenue(venue: Venue) {
         if (venue.active) {
             const hasUpcomingPublishedEvent = events.some(
                 (event) =>
                     event.venueId === venue.id &&
-                    event.status === "Published" &&
+                    event.status === "PUBLISHED" &&
                     event.date >= new Date().toISOString().slice(0, 10),
             );
 
@@ -236,53 +246,64 @@ export default function AdminPortal() {
             }
         }
 
-        setVenues((current) =>
-            current.map((item) =>
-                item.id === venue.id
-                    ? { ...item, active: !item.active }
-                    : item,
-            ),
-        );
+        const nextActive = !venue.active;
+        const updated = await apiUpdateVenue(venue.id, { ...venue, active: nextActive });
 
-        notify(venue.active ? "Venue deactivated." : "Venue activated.");
+        if (updated) {
+            setVenues((current) =>
+                current.map((item) =>
+                    item.id === venue.id ? updated : item,
+                ),
+            );
+            notify(nextActive ? "Venue activated." : "Venue deactivated.");
+        } else {
+            notify("Failed to update venue status.");
+        }
     }
 
-    function toggleEventStatus(event: EventItem) {
-        if (event.status === "Cancelled") {
+    async function toggleEventStatus(event: EventItem) {
+        if (event.status === "CANCELLED") {
             notify("Cancelled events cannot be republished in this prototype.");
             return;
         }
 
         const nextStatus: EventStatus =
-            event.status === "Published" ? "Draft" : "Published";
+            event.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
 
-        setEvents((current) =>
-            current.map((item) =>
-                item.id === event.id
-                    ? { ...item, status: nextStatus }
-                    : item,
-            ),
-        );
+        const updated = await apiUpdateEvent(event.id, { ...event, status: nextStatus });
 
-        notify(
-            nextStatus === "Published"
-                ? "Event published."
-                : "Event moved back to draft.",
-        );
+        if (updated) {
+            setEvents((current) =>
+                current.map((item) =>
+                    item.id === event.id ? updated : item,
+                ),
+            );
+
+            notify(
+                nextStatus === "PUBLISHED"
+                    ? "Event published."
+                    : "Event moved back to draft.",
+            );
+        } else {
+            notify("Failed to update event status.");
+        }
     }
 
-    function cancelEvent(event: EventItem) {
+    async function cancelEvent(event: EventItem) {
         if (!window.confirm(`Cancel ${event.title}?`)) return;
 
-        setEvents((current) =>
-            current.map((item) =>
-                item.id === event.id
-                    ? { ...item, status: "Cancelled" }
-                    : item,
-            ),
-        );
+        const updated = await apiUpdateEvent(event.id, { ...event, status: "CANCELLED" });
 
-        notify("Event marked as cancelled.");
+        if (updated) {
+            setEvents((current) =>
+                current.map((item) =>
+                    item.id === event.id ? updated : item,
+                ),
+            );
+            notify("Event marked as cancelled.");
+        } else {
+            notify("Failed to cancel event.");
+        }
     }
 
     const navigation: {
@@ -410,7 +431,7 @@ export default function AdminPortal() {
                                 <Metric
                                     label="Event capacity"
                                     value={events
-                                        .filter((e) => e.status === "Published")
+                                        .filter((e) => e.status === "PUBLISHED")
                                         .reduce((sum, e) => sum + e.capacity, 0)
                                         .toLocaleString("en-IN")}
                                     note="Across published events"

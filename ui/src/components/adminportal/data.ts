@@ -41,7 +41,7 @@ export const initialEvents: EventItem[] = [
         price: 1499,
         capacity: 12000,
         description: "An immersive night of live electronic music.",
-        status: "Published",
+        status: "PUBLISHED",
     },
     {
         id: "EVT-102",
@@ -53,7 +53,7 @@ export const initialEvents: EventItem[] = [
         price: 799,
         capacity: 1800,
         description: "Contemporary dance and visual storytelling.",
-        status: "Published",
+        status: "PUBLISHED",
     },
     {
         id: "EVT-103",
@@ -65,7 +65,7 @@ export const initialEvents: EventItem[] = [
         price: 999,
         capacity: 350,
         description: "An intimate late-night jazz performance.",
-        status: "Draft",
+        status: "DRAFT",
     },
 ];
 
@@ -89,5 +89,5 @@ export const emptyEvent: EventItem = {
     price: 499,
     capacity: 100,
     description: "",
-    status: "Draft",
+    status: "DRAFT",
 };
