@@ -30,7 +30,7 @@ export const Payment: React.FC<PaymentProps> = ({ booking, user: propUser, onSuc
   const { fetchConfig, createOrder, logPayment, getPaymentByBookingId, verifyPayment } = usePaymentApi();
   const { createBooking } = useBookingApi();
   const json = {
-    bookingId: "BOOKING_ID_1234567890",
+    bookingId: "AF-07",
     "status": "PENDING",
     "paymentId": "PAY_ID_1234567890",
     "amount": 100,
@@ -65,11 +65,11 @@ export const Payment: React.FC<PaymentProps> = ({ booking, user: propUser, onSuc
       if (storedBookingId) {
         // call booking api to know the latest status of payment
         try {
-          const bookingResp = await fetch(`http://localhost:9091/api/v1/bookings/${storedBookingId}`);
+          const bookingResp = json;//await fetch(`http://localhost:9091/api/v1/bookings/${storedBookingId}`);
 
-          if (bookingResp.ok) {
-          //if (json) {
-            const bookingDataJson = await bookingResp.json();
+          //if (bookingResp.ok) {
+          if (json) {
+            const bookingDataJson = json;//await bookingResp.json();
 
             
             // If already confirmed, move forward
@@ -114,22 +114,23 @@ export const Payment: React.FC<PaymentProps> = ({ booking, user: propUser, onSuc
 
       if (!realBookingId) {
         showStatus('Creating booking...', 'info');
-         const bookingData = await createBooking({
-          seatNumbers: booking.seats,
-          venue: booking.event.venue,
-          username: currentUser?.name ?? 'Guest User',
-          mail: currentUser?.email ?? '',
-          phoneNumber: currentUser?.phone ?? '',
-          eventId: booking.event.id,
-          eventTitle: booking.event.title,
-          eventDate: booking.event.date,
-          eventStartTime: booking.event.startTime,
-          eventDuration: booking.event.duration,
-          city: booking.event.city,
-          amount: booking.amount,
-          currency: 'INR',
-          status: 'PENDING',
-        });
+         const bookingData = json;
+        //      await createBooking({
+        //   seatNumbers: booking.seats,
+        //   venue: booking.event.venue,
+        //   username: currentUser?.name ?? 'Guest User',
+        //   mail: currentUser?.email ?? '',
+        //   phoneNumber: currentUser?.phone ?? '',
+        //   eventId: booking.event.id,
+        //   eventTitle: booking.event.title,
+        //   eventDate: booking.event.date,
+        //   eventStartTime: booking.event.startTime,
+        //   eventDuration: booking.event.duration,
+        //   city: booking.event.city,
+        //   amount: booking.amount,
+        //   currency: 'INR',
+        //   status: 'PENDING',
+        // });
 
 
         if (!bookingData || !bookingData.bookingId) {
@@ -150,7 +151,7 @@ export const Payment: React.FC<PaymentProps> = ({ booking, user: propUser, onSuc
         razorpayOrderId: orderData.order_id,
         failureReason: null,
         timestamps: new Date().toISOString()
-      }, `init_${realBookingId}_${orderData.order_id}`);
+      }, `order_${realBookingId}_${orderData.order_id}`);
 
       await openRazorpayCheckout(orderData, realBookingId);
 
@@ -195,7 +196,7 @@ export const Payment: React.FC<PaymentProps> = ({ booking, user: propUser, onSuc
             razorpaySignature: response.razorpay_signature,
             failureReason: null,
             timestamps: new Date().toISOString()
-          }, `pay_${realBookingId}_${response.razorpay_payment_id}`);
+          }, `order_${realBookingId}_${orderData.order_id}`);
 
           // 2. Verify signature
           await verifyPayment({
@@ -239,7 +240,7 @@ export const Payment: React.FC<PaymentProps> = ({ booking, user: propUser, onSuc
           razorpayPaymentId: response.error.metadata?.payment_id,
           failureReason: reason,
           timestamps: new Date().toISOString()
-        }, `fail_${realBookingId}_${response.error.metadata?.payment_id || Date.now()}`);
+        }, `order_${realBookingId}_${orderData.order_id}`);
       } catch (e) { console.error('Failed to log failure', e); }
 
       setLoading(false);
