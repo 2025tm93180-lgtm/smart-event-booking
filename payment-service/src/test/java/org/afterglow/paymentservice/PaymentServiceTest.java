@@ -55,6 +55,7 @@ class PaymentServiceTest {
     @Test
     void testCreatePaymentSuccess() {
         when(idempotencyRepository.findByIdempotencyKey("idempotency-key")).thenReturn(Optional.empty());
+        when(paymentRepository.findByBookingId("booking-456")).thenReturn(Optional.empty());
         when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> {
             Payment p = invocation.getArgument(0);
             p.setUuId("pay-uuid-123");
@@ -72,6 +73,49 @@ class PaymentServiceTest {
         verify(paymentRepository, times(1)).save(samplePayment);
         verify(outboxEventRepository, times(1)).save(any(OutboxEvent.class));
         verify(outboxEventProducer, times(1)).send(any(OutboxEvent.class));
+    }
+
+    @Test
+    void testCreatePaymentUpdatesExistingPaymentByBookingId() {
+        Payment existingPayment = new Payment();
+        existingPayment.setUuId("pay-uuid-existing-999");
+        existingPayment.setBookingId("booking-456");
+        existingPayment.setAmount(100.0);
+        existingPayment.setCurrency("INR");
+        existingPayment.setStatus(PaymentStatusEnum.PENDING);
+
+        org.afterglow.paymentservice.model.PaymentIdempotency existingIdempotency = new org.afterglow.paymentservice.model.PaymentIdempotency();
+        existingIdempotency.setId(10L);
+        existingIdempotency.setIdempotencyKey("idempotency-key-2");
+        existingIdempotency.setResultStatus("PENDING");
+
+        when(idempotencyRepository.findByIdempotencyKey("idempotency-key-2"))
+                .thenReturn(Optional.empty()) // in findIdempotentReplay check
+                .thenReturn(Optional.of(existingIdempotency)); // in saveIdempotencyRecord
+        when(paymentRepository.findByBookingId("booking-456")).thenReturn(Optional.of(existingPayment));
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(outboxEventRepository.save(any(OutboxEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Payment updatedPaymentRequest = new Payment();
+        updatedPaymentRequest.setBookingId("booking-456");
+        updatedPaymentRequest.setStatus(PaymentStatusEnum.CONFIRMED);
+        updatedPaymentRequest.setRazorpayOrderId("order_abc");
+        updatedPaymentRequest.setRazorpayPaymentId("pay_xyz");
+        updatedPaymentRequest.setRazorpaySignature("sig_123");
+
+        Payment result = paymentService.createPayment(updatedPaymentRequest, "idempotency-key-2");
+
+        assertNotNull(result);
+        assertEquals("pay-uuid-existing-999", result.getUuId());
+        assertEquals("booking-456", result.getBookingId());
+        assertEquals(PaymentStatusEnum.CONFIRMED, result.getStatus());
+        assertEquals("order_abc", result.getRazorpayOrderId());
+        assertEquals("pay_xyz", result.getRazorpayPaymentId());
+        assertEquals("sig_123", result.getRazorpaySignature());
+        verify(paymentRepository, times(1)).save(existingPayment);
+        verify(idempotencyRepository, times(1)).save(existingIdempotency);
+        assertEquals("CONFIRMED", existingIdempotency.getResultStatus());
+        assertEquals("pay-uuid-existing-999", existingIdempotency.getPaymentId());
     }
 
     @Test

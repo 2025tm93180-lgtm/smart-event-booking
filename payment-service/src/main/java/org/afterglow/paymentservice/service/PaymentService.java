@@ -1,5 +1,6 @@
 package org.afterglow.paymentservice.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.afterglow.paymentservice.model.Payment;
 import org.afterglow.paymentservice.model.PaymentStatusEnum;
 import org.afterglow.paymentservice.producer.OutboxEventProducer;
@@ -22,6 +23,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Optional;
 
+@Slf4j
 @Service
 public class PaymentService {
 
@@ -42,26 +44,42 @@ public class PaymentService {
 
     @Transactional
     public Payment createPayment(Payment payment, String idempotencyKey) {
+        log.info("Creating payment with idempotency key: {} and payment payload: {}", idempotencyKey, payment);
         if (payment == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payment request cannot be null");
         }
         validateIdempotencyKey(idempotencyKey);
         String requestHash = hashRequest(payment);
-        Optional<Payment> replay = findIdempotentReplay(idempotencyKey, requestHash);
-        if (replay.isPresent()) return replay.get();
-        if (payment.getStatus() == null) {
-            payment.setStatus(PaymentStatusEnum.PENDING);
-        }
-        if (payment.getTimestamps() == null || payment.getTimestamps().isBlank()) {
-            payment.setTimestamps(Instant.now().toString());
-        }
-        // A create request must always insert a fresh row; never merge a client-supplied identifier.
-        payment.setUuId(null);
-        Payment persisted = paymentRepository.save(payment);
+        Payment paymentToSave = isPaymentRecordExist(payment);
 
+        Payment persisted = paymentRepository.save(paymentToSave);
         saveIdempotencyRecord(idempotencyKey, requestHash, persisted);
         saveOutboxEvent("PAYMENT_FINISHED", idempotencyKey, persisted, false);
+        log.info("Payment created with idempotency key: {} and payment payload: {}", idempotencyKey, persisted);
         return persisted;
+    }
+
+    private Payment isPaymentRecordExist(Payment payment) {
+        Payment paymentToSave = new Payment();
+        if (payment.getBookingId() != null && !payment.getBookingId().isBlank()) {
+            Optional<Payment> existingOpt = paymentRepository.findByBookingId(payment.getBookingId());
+            if (existingOpt.isPresent()) {
+                Payment existing = existingOpt.get();
+                existing.setStatus(payment.getStatus());
+                existing.setAmount(payment.getAmount());
+                existing.setCurrency(payment.getCurrency());
+                existing.setFailureReason(payment.getFailureReason());
+                existing.setRazorpayPaymentId(payment.getRazorpayPaymentId());
+                existing.setRazorpayOrderId(payment.getRazorpayOrderId());
+                existing.setRazorpaySignature(payment.getRazorpaySignature());
+                existing.setTimestamps(payment.getTimestamps());
+                existing.setTimestamps(Instant.now().toString());
+                paymentToSave = existing;
+            }else {
+                return payment;
+            }
+        }
+        return paymentToSave;
     }
 
     private String hashRequest(Payment payment) {
@@ -72,18 +90,22 @@ public class PaymentService {
         return hashRequest("CREATE_PAYMENT", canonical);
     }
 
-    private String value(String value) { return value == null ? "" : value; }
+    private String value(String value) {
+        return value == null ? "" : value;
+    }
 
     public Optional<Payment> getPaymentById(String paymentId) {
+        log.info("Fetching payment by ID: {} at PaymentService", paymentId);
         if (paymentId == null || paymentId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payment ID cannot be blank");
         }
         Optional<Payment> byId = paymentRepository.findById(paymentId);
-        System.out.println("by: "+byId);
+        System.out.println("by: " + byId);
         return byId;
     }
 
     public Optional<Payment> getPaymentByBookingId(String bookingId) {
+        log.info("Fetching payment by booking ID: {} at PaymentService", bookingId);
         if (bookingId == null || bookingId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Booking ID cannot be blank");
         }
@@ -92,13 +114,13 @@ public class PaymentService {
 
     @Transactional
     public Payment simulateDeclinePayment(String paymentId, String idempotencyKey) {
+        log.info("Simulating decline payment for payment ID: {} and idempotency key: {} at PaymentService", paymentId, idempotencyKey);
         if (paymentId == null || paymentId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payment ID cannot be blank");
         }
         validateIdempotencyKey(idempotencyKey);
         String requestHash = hashRequest("SIMULATE_DECLINE", paymentId);
-        Optional<Payment> replay = findIdempotentReplay(idempotencyKey, requestHash);
-        if (replay.isPresent()) return replay.get();
+
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found with id: " + paymentId));
         payment.setStatus(PaymentStatusEnum.FAILED);
@@ -111,29 +133,25 @@ public class PaymentService {
         return persisted;
     }
 
-    private Optional<Payment> findIdempotentReplay(String key, String requestHash) {
-        return idempotencyRepository.findByIdempotencyKey(key).map(saved -> {
-            if (!saved.getRequestHash().equals(requestHash)) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "Idempotency key was already used with a different request");
-            }
-            return paymentRepository.findById(saved.getPaymentId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
-                            "Payment for this idempotency key no longer exists"));
-        });
-    }
-
     private void saveIdempotencyRecord(String key, String requestHash, Payment payment) {
-        PaymentIdempotency record = new PaymentIdempotency();
-        record.setIdempotencyKey(key);
+        log.info("Saving idempotency record for idempotency key: {} and payment: {} at PaymentService", key, payment);
+        PaymentIdempotency record = idempotencyRepository.findByIdempotencyKey(key)
+                .orElseGet(() -> {
+                    PaymentIdempotency newRecord = new PaymentIdempotency();
+                    newRecord.setIdempotencyKey(key);
+                    return newRecord;
+                });
+
         record.setRequestHash(requestHash);
         record.setPaymentId(payment.getUuId());
-        record.setResultStatus(payment.getStatus().name());
+        record.setResultStatus(payment.getStatus() != null ? payment.getStatus().name() : null);
         record.setTimestamps(Instant.now().toString());
         idempotencyRepository.save(record);
+        log.info("Idempotency record saved for idempotency key: {} and payment: {}", key, record);
     }
 
     private void saveOutboxEvent(String eventType, String key, Payment payment, boolean includeFailureReason) {
+        log.info("Saving outbox event for event type: {}, idempotency key: {} and payment: {} at PaymentService", eventType, key, payment);
         JSONObject payload = new JSONObject();
         payload.put("paymentId", payment.getUuId());
         payload.put("bookingId", payment.getBookingId() == null ? JSONObject.NULL : payment.getBookingId());
