@@ -1,0 +1,14 @@
+-------------------------------------------------------------------------------
+Test set: com.team.ticketnotification.KafkaFlowTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.230 s -- in com.team.ticketnotification.KafkaFlowTest
+
+-------------------------------------------------------------------------------
+Test set: com.team.ticketnotification.MySqlConcurrencyTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0.008 s -- in com.team.ticketnotification.MySqlConcurrencyTest
+
+-------------------------------------------------------------------------------
+Test set: com.team.ticketnotification.ServiceIntegrationTest
+-------------------------------------------------------------------------------
+Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.065 s -- in com.team.ticketnotification.ServiceIntegrationTest

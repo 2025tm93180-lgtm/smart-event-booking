@@ -1,0 +1,21 @@
+{
+  "eventId": "8c5486fa-2c92-4d30-9e48-ddbd16b613bd",
+  "schemaVersion": 1,
+  "eventType": "booking.confirmed.v1",
+  "correlationId": "corr-demo-001",
+  "occurredAt": "2026-10-18T15:00:00Z",
+  "bookingId": "booking-001",
+  "payload": {
+    "customerId": "customer-001",
+    "targetEventId": 101,
+    "confirmedAt": "2026-10-18T15:00:00Z",
+    "items": [
+      {
+        "seatId": 501
+      },
+      {
+        "seatId": 502
+      }
+    ]
+  }
+}

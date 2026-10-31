@@ -1,0 +1,83 @@
+server:
+  port: ${SERVER_PORT:8084}
+spring:
+  application:
+    name: ticket-notification-service
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/ticket_db?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true}
+    username: ${DB_USERNAME:ticket_user}
+    password: ${DB_PASSWORD}
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    default-encoding: UTF-8
+    properties:
+      "[mail.smtp.auth]": ${SMTP_AUTH:true}
+      "[mail.smtp.starttls.enable]": ${SMTP_STARTTLS:true}
+      "[mail.smtp.starttls.required]": ${SMTP_STARTTLS_REQUIRED:true}
+      "[mail.smtp.ssl.enable]": ${SMTP_SSL_ENABLED:false}
+      "[mail.smtp.ssl.checkserveridentity]": true
+      "[mail.smtp.connectiontimeout]": 5000
+      "[mail.smtp.timeout]": 5000
+      "[mail.smtp.writetimeout]": 5000
+  flyway:
+    enabled: true
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:ticket-notification-service}
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      max-poll-records: 20
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+    listener:
+      ack-mode: record
+      auto-startup: ${KAFKA_LISTENER_ENABLED:true}
+    admin:
+      auto-create: ${KAFKA_CREATE_TOPICS:true}
+management:
+  health:
+    mail:
+      enabled: false
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+logging:
+  structured:
+    format:
+      console: logstash
+app:
+  security:
+    jwt-secret: ${JWT_SECRET}
+    jwt-issuer: ${JWT_ISSUER:smart-event-booking}
+    jwt-audience: ${JWT_AUDIENCE:ticket-api}
+  kafka:
+    topic: booking.confirmed.v1
+    partitions: ${KAFKA_TOPIC_PARTITIONS:3}
+    replicas: ${KAFKA_TOPIC_REPLICAS:1}
+  notifications:
+    mode: ${NOTIFICATION_MODE:mock}
+    from: ${MAIL_FROM:}
+    enabled: ${NOTIFICATIONS_ENABLED:true}
+    delay-ms: ${NOTIFICATION_DELAY_MS:3000}
+    batch-size: 20
+    mock-fail: ${MOCK_NOTIFICATION_FAIL:false}

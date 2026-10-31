@@ -1,0 +1,139 @@
+{
+  "info": {
+    "name": "Member 4 \u2014 Ticket & Notification",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8084"
+    },
+    {
+      "key": "bookingId",
+      "value": "booking-001"
+    },
+    {
+      "key": "ticketId",
+      "value": "paste-ticket-id"
+    },
+    {
+      "key": "notificationId",
+      "value": "paste-notification-id"
+    },
+    {
+      "key": "customerToken",
+      "value": "paste-local-token"
+    },
+    {
+      "key": "adminToken",
+      "value": "paste-admin-token"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health",
+        "header": [
+          {
+            "key": "X-Correlation-ID",
+            "value": "postman-demo"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Tickets by booking",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/tickets/by-booking/{{bookingId}}?page=0&size=20",
+        "header": [
+          {
+            "key": "X-Correlation-ID",
+            "value": "postman-demo"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{customerToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Ticket detail",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/tickets/{{ticketId}}",
+        "header": [
+          {
+            "key": "X-Correlation-ID",
+            "value": "postman-demo"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{customerToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Notification status",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/notifications/by-booking/{{bookingId}}",
+        "header": [
+          {
+            "key": "X-Correlation-ID",
+            "value": "postman-demo"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{customerToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Retry failed notification",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/v1/notifications/retry/{{notificationId}}",
+        "header": [
+          {
+            "key": "X-Correlation-ID",
+            "value": "postman-demo"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
