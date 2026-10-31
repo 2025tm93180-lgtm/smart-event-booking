@@ -1,0 +1,22 @@
+{
+  "eventId": "6e965af5-dc0b-44c9-a605-6cb573851d65",
+  "schemaVersion": 1,
+  "eventType": "booking.confirmed.v1",
+  "correlationId": "corr-demo-001",
+  "occurredAt": "2026-10-18T15:00:00Z",
+  "bookingId": "email-example-001",
+  "payload": {
+    "customerId": "customer-001",
+    "targetEventId": 101,
+    "confirmedAt": "2026-10-18T15:00:00Z",
+    "items": [
+      {
+        "seatId": 501
+      },
+      {
+        "seatId": 502
+      }
+    ],
+    "customerEmail": "recipient@example.com"
+  }
+}

@@ -1,0 +1,6 @@
+ALTER TABLE booking_issuances
+    MODIFY COLUMN event_id VARCHAR(100) NOT NULL;
+
+ALTER TABLE tickets
+    MODIFY COLUMN event_id VARCHAR(100) NOT NULL,
+    MODIFY COLUMN seat_id VARCHAR(100) NOT NULL;

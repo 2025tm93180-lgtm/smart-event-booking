@@ -1,0 +1,18 @@
+#!/bin/sh
+# Use the project-local JDK and Maven. Works when the project path contains spaces.
+set -eu
+PROJECT_DIR=$(CDPATH= cd -P "$(dirname "$0")" && pwd)
+JAVA_HOME="$PROJECT_DIR/.tools/jdk21"
+if [ -d "$JAVA_HOME/Contents/Home" ]; then
+    JAVA_HOME="$JAVA_HOME/Contents/Home"
+fi
+MAVEN_HOME="$PROJECT_DIR/.tools/apache-maven-3.9.11"
+if [ ! -x "$JAVA_HOME/bin/java" ] || [ ! -x "$MAVEN_HOME/bin/mvn" ]; then
+    echo 'Run python3 scripts/install_tools.py from the project folder first.' >&2
+    exit 1
+fi
+export JAVA_HOME MAVEN_HOME
+PATH="$JAVA_HOME/bin:$MAVEN_HOME/bin:$PATH"
+export PATH
+mkdir -p "$PROJECT_DIR/.tools/m2/repository"
+exec "$MAVEN_HOME/bin/mvn" -f "$PROJECT_DIR/pom.xml" "-Dmaven.repo.local=$PROJECT_DIR/.tools/m2/repository" "$@"

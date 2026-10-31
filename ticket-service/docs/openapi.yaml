@@ -1,0 +1,376 @@
+openapi: 3.0.3
+info:
+  title: Ticket & Notification Service
+  version: 1.0.0
+  description: Member 4. Creation via Kafka booking.confirmed.v1. JWT sub must match
+    the stored customerId; ADMIN can read all and retry.
+servers:
+- url: http://localhost:8084
+security:
+- bearerAuth: []
+paths:
+  /health:
+    get:
+      summary: Database and Kafka health
+      operationId: health
+      security: []
+      responses:
+        '200':
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: UP
+        '503':
+          description: Dependency unavailable
+  /api/v1/tickets/{ticketId}:
+    get:
+      summary: Read one ticket; owner or ADMIN
+      operationId: ticket
+      parameters:
+      - name: ticketId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          description: Invalid pagination or request parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid or missing JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Different customer owns this booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Ticket or issued booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/tickets/by-booking/{bookingId}:
+    get:
+      summary: Read tickets for a booking; owner or ADMIN
+      operationId: ticketsByBooking
+      parameters:
+      - name: bookingId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 100000
+          default: 0
+      - name: size
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketPage'
+        '400':
+          description: Invalid pagination or request parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid or missing JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Different customer owns this booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Ticket or issued booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/notifications/by-booking/{bookingId}:
+    get:
+      summary: Read notification status; owner or ADMIN
+      operationId: notificationsByBooking
+      parameters:
+      - name: bookingId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 100000
+          default: 0
+      - name: size
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPage'
+        '400':
+          description: Invalid pagination or request parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid or missing JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Different customer owns this booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Ticket or issued booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/notifications/retry/{attemptId}:
+    post:
+      summary: Queue a failed notification again; ADMIN only
+      operationId: retryNotification
+      parameters:
+      - name: attemptId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: allowDuplicate
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: Required when deliveryUncertain=true. May cause duplicate email;
+          inspect provider logs first.
+      responses:
+        '202':
+          description: Existing logical notification queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                    - PENDING
+                  notificationId:
+                    type: string
+        '401':
+          description: Invalid or missing JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: ADMIN required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Not FAILED, or uncertain previous delivery requires explicit
+            duplicate acknowledgement.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      required:
+      - timestamp
+      - status
+      - code
+      - message
+      - path
+      - correlationId
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        code:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        correlationId:
+          type: string
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        bookingId:
+          type: string
+        eventId:
+          type: integer
+          format: int64
+        seatId:
+          type: integer
+          format: int64
+        ticketCode:
+          type: string
+        status:
+          type: string
+          enum:
+          - ISSUED
+          - CANCELLED
+        issuedAt:
+          type: string
+          format: date-time
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        bookingId:
+          type: string
+        ticketId:
+          type: string
+          format: uuid
+        channel:
+          type: string
+          enum:
+          - EMAIL
+          - SMS
+        status:
+          type: string
+          enum:
+          - PENDING
+          - SENT
+          - FAILED
+        attemptCount:
+          type: integer
+        lastError:
+          type: string
+          nullable: true
+        deliveryMode:
+          type: string
+          enum:
+          - MOCK
+          - SMTP
+        deliveryUncertain:
+          type: boolean
+          description: SMTP may have accepted a message; inspect provider logs before
+            retry.
+        sentAt:
+          type: string
+          format: date-time
+          nullable: true
+    TicketPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ticket'
+        page:
+          type: integer
+        size:
+          type: integer
+        total:
+          type: integer
+          format: int64
+    NotificationPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        page:
+          type: integer
+        size:
+          type: integer
+        total:
+          type: integer
+          format: int64

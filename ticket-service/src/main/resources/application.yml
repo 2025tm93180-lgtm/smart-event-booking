@@ -1,0 +1,93 @@
+
+server:
+  port: 8084
+
+spring:
+  application:
+    name: ticket-notification-service
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/ticket_db?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
+    username: root
+    password:
+
+  mail:
+    host: localhost
+    port: 587
+    username: ""
+    password:
+    default-encoding: UTF-8
+    properties:
+      "[mail.smtp.auth]": true
+      "[mail.smtp.starttls.enable]": true
+      "[mail.smtp.starttls.required]": true
+      "[mail.smtp.ssl.enable]": false
+      "[mail.smtp.ssl.checkserveridentity]": true
+      "[mail.smtp.connectiontimeout]": 5000
+      "[mail.smtp.timeout]": 5000
+      "[mail.smtp.writetimeout]": 5000
+
+  flyway:
+    enabled: true
+
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
+
+  kafka:
+    bootstrap-servers: 16.4.39.12:9093
+    consumer:
+      group-id: ticket-notification-service
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      max-poll-records: 20
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+    listener:
+      ack-mode: record
+      auto-startup: true
+    admin:
+      auto-create: true
+
+management:
+  health:
+    mail:
+      enabled: false
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+
+logging:
+  structured:
+    format:
+      console: logstash
+
+app:
+  security:
+    jwt-secret: ${JWT_SECRET}
+    jwt-issuer: smart-event-booking
+    jwt-audience: ticket-api
+  kafka:
+    topic: booking.confirmed.v1
+    partitions: 3
+    replicas: 1
+  notifications:
+    mode: mock
+    from: ""
+    enabled: true
+    delay-ms: 3000
+    batch-size: 20
+    mock-fail: false
