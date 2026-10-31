@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: event-inventory-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/event_inventory_service
+    username: root
+    password: sasi@123
+  jpa:
+    hibernate:
+      ddl-auto: update
+    repositories:
+      enabled: true
+
+
+
+server:
+  port: 9091
