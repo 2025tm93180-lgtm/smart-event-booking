@@ -15,7 +15,7 @@ spring:
       repositories:
         enabled: true
   kafka:
-    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:16.4.39.12:9093}
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -28,8 +28,8 @@ server:
   port: 9090
 
 razorpay:
-  key-id: ${RAZORPAY_KEY_ID:rzp_test_TmUoRlZbl3o0Vo}
-  key-secret: ${RAZORPAY_KEY_SECRET}
+  key-id: 'your_actual_test_secret'
+  key-secret: 'your_actual_test_secret'
 
 
 

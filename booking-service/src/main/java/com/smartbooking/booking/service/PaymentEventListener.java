@@ -19,14 +19,22 @@ public class PaymentEventListener {
         this.processingService = processingService;
     }
 
+
     @KafkaListener(
             topics = "${booking.kafka.payment-events-topic:payment-events}",
             groupId = "${spring.kafka.consumer.group-id:booking-service}"
     )
     public void consume(String message) throws Exception {
-        PaymentEvent event =
-                objectMapper.readValue(message, PaymentEvent.class);
+        System.out.println(">>> PAYMENT EVENT RECEIVED: " + message);
+
+        PaymentEvent event = objectMapper.readValue(message, PaymentEvent.class);
+
+        System.out.println(">>> PAYMENT STATUS: " + event.status()
+                + ", BOOKING ID: " + event.bookingId());
 
         processingService.process(event);
+
+        System.out.println(">>> PAYMENT EVENT PROCESSED SUCCESSFULLY");
     }
+
 }

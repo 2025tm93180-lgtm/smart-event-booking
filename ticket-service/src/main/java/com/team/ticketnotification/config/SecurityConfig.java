@@ -35,7 +35,16 @@ public class SecurityConfig {
         var converter=new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt -> "ADMIN".equals(jwt.getClaimAsString("role")) ? List.of(new SimpleGrantedAuthority("ROLE_ADMIN")) : List.of(new SimpleGrantedAuthority("ROLE_CUSTOMER")));
         http.csrf(csrf->csrf.disable()).sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(a->a.requestMatchers("/health","/health/**").permitAll().anyRequest().authenticated())
+                .authorizeHttpRequests(a -> a
+                        .requestMatchers(
+                                "/health",
+                                "/health/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**"
+                        ).permitAll()
+                        .anyRequest().authenticated())
             .oauth2ResourceServer(o->o.jwt(j->j.jwtAuthenticationConverter(converter))
                 .authenticationEntryPoint((req,res,ex)->{res.setStatus(401);res.setHeader("WWW-Authenticate","Bearer");res.setContentType("application/json");mapper.writeValue(res.getOutputStream(),ApiErrors.body(401,"UNAUTHORIZED","A valid bearer token is required.",req.getRequestURI()));}))
             .exceptionHandling(e->e.accessDeniedHandler((req,res,ex)->{res.setStatus(403);res.setContentType("application/json");mapper.writeValue(res.getOutputStream(),ApiErrors.body(403,"FORBIDDEN","Access denied.",req.getRequestURI()));}));
