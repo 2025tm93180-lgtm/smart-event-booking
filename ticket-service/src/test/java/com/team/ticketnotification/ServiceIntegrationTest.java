@@ -38,39 +38,39 @@ class ServiceIntegrationTest {
         db.update("DELETE FROM notification_attempts"); db.update("DELETE FROM tickets");
         db.update("DELETE FROM inbox_messages"); db.update("DELETE FROM booking_issuances");
     }
-    BookingConfirmedEvent event(String message,String booking,String customer,Long... seats) {
+    BookingConfirmedEvent event(String message,String booking,String customer,String... seats) {
         return new BookingConfirmedEvent(message,1,"booking.confirmed.v1","corr-test",Instant.now(),booking,
-            new BookingConfirmedEvent.Payload(customer,101L,Instant.now(),Arrays.stream(seats).map(BookingConfirmedEvent.Item::new).toList()));
+            new BookingConfirmedEvent.Payload(customer,"event-101",Instant.now(),Arrays.stream(seats).map(BookingConfirmedEvent.Item::new).toList()));
     }
     long count(String table) { return db.queryForObject("SELECT COUNT(*) FROM "+table,Long.class); }
     @Test void createsOneTicketAndPendingNotificationPerSeat() {
-        assertThat(service.issue(event("m1","b1","c1",501L,502L))).isTrue();
+        assertThat(service.issue(event("m1","b1","c1","seat-501","seat-502"))).isTrue();
         assertThat(count("tickets")).isEqualTo(2);assertThat(count("notification_attempts")).isEqualTo(2);assertThat(count("inbox_messages")).isEqualTo(1);
         assertThat(db.queryForList("SELECT status FROM notification_attempts",String.class)).containsOnly("PENDING");
     }
     @Test void sameMessageAndNewMessageReplayPreserveTicketIds() {
-        service.issue(event("m1","b1","c1",501L,502L));
+        service.issue(event("m1","b1","c1","seat-501","seat-502"));
         var ids=db.queryForList("SELECT id FROM tickets ORDER BY id",String.class);
-        assertThat(service.issue(event("m1","b1","c1",502L,501L))).isFalse();
-        assertThat(service.issue(event("m2","b1","c1",501L,502L))).isFalse();
+        assertThat(service.issue(event("m1","b1","c1","seat-502","seat-501"))).isFalse();
+        assertThat(service.issue(event("m2","b1","c1","seat-501","seat-502"))).isFalse();
         assertThat(db.queryForList("SELECT id FROM tickets ORDER BY id",String.class)).isEqualTo(ids);
         assertThat(count("notification_attempts")).isEqualTo(2);assertThat(count("inbox_messages")).isEqualTo(2);
     }
     @Test void conflictingBookingAndReusedMessageAreRejectedAtomically() {
-        service.issue(event("m1","b1","c1",501L));
-        assertThatThrownBy(()->service.issue(event("m2","b1","c1",501L,502L))).isInstanceOf(InvalidBookingEventException.class);
-        assertThatThrownBy(()->service.issue(event("m1","b2","c2",503L))).isInstanceOf(InvalidBookingEventException.class);
+        service.issue(event("m1","b1","c1","seat-501"));
+        assertThatThrownBy(()->service.issue(event("m2","b1","c1","seat-501","seat-502"))).isInstanceOf(InvalidBookingEventException.class);
+        assertThatThrownBy(()->service.issue(event("m1","b2","c2","seat-503"))).isInstanceOf(InvalidBookingEventException.class);
         assertThat(count("tickets")).isEqualTo(1);assertThat(count("booking_issuances")).isEqualTo(1);
     }
     @Test void duplicateSeatAndInvalidVersionHaveNoEffects() {
-        assertThatThrownBy(()->service.issue(event("m1","b1","c1",501L,501L))).isInstanceOf(InvalidBookingEventException.class);
-        var good=event("m2","b2","c2",501L);
+        assertThatThrownBy(()->service.issue(event("m1","b1","c1","seat-501","seat-501"))).isInstanceOf(InvalidBookingEventException.class);
+        var good=event("m2","b2","c2","seat-501");
         var bad=new BookingConfirmedEvent(good.eventId(),2,good.eventType(),good.correlationId(),good.occurredAt(),good.bookingId(),good.payload());
         assertThatThrownBy(()->service.issue(bad)).isInstanceOf(InvalidBookingEventException.class);
         assertThat(count("tickets")).isZero();assertThat(count("inbox_messages")).isZero();
     }
     @Test void rollbackThenRetryWorks() {
-        var event=event("m1","b1","c1",501L,502L);
+        var event=event("m1","b1","c1","seat-501","seat-502");
         assertThatThrownBy(()->transactions.executeWithoutResult(s->{service.issue(event);throw new IllegalStateException("forced crash before commit");})).isInstanceOf(IllegalStateException.class);
         assertThat(count("tickets")).isZero();assertThat(count("notification_attempts")).isZero();assertThat(count("inbox_messages")).isZero();
         service.issue(event);assertThat(count("tickets")).isEqualTo(2);
@@ -78,7 +78,7 @@ class ServiceIntegrationTest {
     @Test void twentyConcurrentLogicalDuplicatesCreateOnlyTwoTickets() throws Exception {
         try(var pool=Executors.newFixedThreadPool(8)) {
             var calls=new ArrayList<Callable<Boolean>>();
-            for(int i=0;i<20;i++) { String message="m"+i;calls.add(()->service.issue(event(message,"b1","c1",501L,502L))); }
+            for(int i=0;i<20;i++) { String message="m"+i;calls.add(()->service.issue(event(message,"b1","c1","seat-501","seat-502"))); }
             int created=0;
             for(var future:pool.invokeAll(calls)) if(future.get(20,TimeUnit.SECONDS)) created++;
             assertThat(created).isEqualTo(1);
@@ -86,7 +86,7 @@ class ServiceIntegrationTest {
         assertThat(count("tickets")).isEqualTo(2);assertThat(count("notification_attempts")).isEqualTo(2);assertThat(count("inbox_messages")).isEqualTo(20);
     }
     @Test void mockFailureRetryAndSuccessPreserveTickets() {
-        service.issue(event("m1","b1","c1",501L));
+        service.issue(event("m1","b1","c1","seat-501"));
         var failWorker=new NotificationWorker(deliveryStore,Optional.empty(),true,20);
         failWorker.deliverPending();
         assertThat(db.queryForObject("SELECT status FROM notification_attempts",String.class)).isEqualTo("FAILED");
@@ -100,7 +100,7 @@ class ServiceIntegrationTest {
         assertThat(count("notification_attempts")).isEqualTo(1);
     }
     @Test void httpOwnershipAuthenticationPaginationAndAdminRetry() throws Exception {
-        service.issue(event("m1","b1","c1",501L,502L));
+        service.issue(event("m1","b1","c1","seat-501","seat-502"));
         mvc.perform(get("/api/v1/tickets/by-booking/b1")).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
         mvc.perform(get("/api/v1/tickets/by-booking/b1").with(jwt().jwt(j->j.subject("c1")))).andExpect(status().isOk()).andExpect(jsonPath("$.total").value(2));
         mvc.perform(get("/api/v1/tickets/by-booking/b1").with(jwt().jwt(j->j.subject("c2")))).andExpect(status().isForbidden());
@@ -120,7 +120,7 @@ class ServiceIntegrationTest {
         return encoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(),claims)).getTokenValue();
     }
     @Test void realJwtDecoderChecksSignatureIssuerAudienceAndExpiry() throws Exception {
-        service.issue(event("m1","b1","c1",501L));
+        service.issue(event("m1","b1","c1","seat-501"));
         var valid=signedToken("smart-event-booking","ticket-api",Instant.now().plusSeconds(300));
         mvc.perform(get("/api/v1/tickets/by-booking/b1").header("Authorization","Bearer "+valid)).andExpect(status().isOk());
         for(String invalid:List.of(signedToken("wrong","ticket-api",Instant.now().plusSeconds(300)),signedToken("smart-event-booking","wrong",Instant.now().plusSeconds(300)),signedToken("smart-event-booking","ticket-api",Instant.now().minusSeconds(120)),valid.substring(0,valid.lastIndexOf('.')+1)+"invalid"))
@@ -128,7 +128,7 @@ class ServiceIntegrationTest {
     }
     @Test void listenerRejectsMalformedJsonAndWrongKey() throws Exception {
         assertThatThrownBy(()->listener.consume(new org.apache.kafka.clients.consumer.ConsumerRecord<>("booking.confirmed.v1",0,0,"b1","bad json"))).isInstanceOf(InvalidBookingEventException.class);
-        assertThatThrownBy(()->listener.consume(new org.apache.kafka.clients.consumer.ConsumerRecord<>("booking.confirmed.v1",0,1,"wrong",mapper.writeValueAsString(event("m1","b1","c1",501L))))).isInstanceOf(InvalidBookingEventException.class);
+        assertThatThrownBy(()->listener.consume(new org.apache.kafka.clients.consumer.ConsumerRecord<>("booking.confirmed.v1",0,1,"wrong",mapper.writeValueAsString(event("m1","b1","c1","seat-501"))))).isInstanceOf(InvalidBookingEventException.class);
         assertThat(count("tickets")).isZero();
     }
 }

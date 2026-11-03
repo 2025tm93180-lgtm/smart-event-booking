@@ -36,7 +36,7 @@ class KafkaFlowTest {
             broker.consumeFromAnEmbeddedTopic(dlt,"booking.confirmed.v1.DLT");
             // Same partition: the valid record after malformed JSON proves the listener advances after recovery.
             producer.send("booking.confirmed.v1",0,"kafka-booking","not-json").get();
-            var event=new BookingConfirmedEvent("kafka-event",1,"booking.confirmed.v1","corr-kafka",Instant.now(),"kafka-booking",new BookingConfirmedEvent.Payload("customer-001",101L,Instant.now(),List.of(new BookingConfirmedEvent.Item(501L),new BookingConfirmedEvent.Item(502L))));
+            var event=new BookingConfirmedEvent("kafka-event",1,"booking.confirmed.v1","corr-kafka",Instant.now(),"kafka-booking",new BookingConfirmedEvent.Payload("customer-001","event-101",Instant.now(),List.of(new BookingConfirmedEvent.Item("seat-501"),new BookingConfirmedEvent.Item("seat-502"))));
             String json=mapper.writeValueAsString(event);
             producer.send("booking.confirmed.v1",0,event.bookingId(),json).get();
             producer.send("booking.confirmed.v1",0,event.bookingId(),json).get();

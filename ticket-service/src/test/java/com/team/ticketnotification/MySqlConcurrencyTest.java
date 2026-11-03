@@ -32,7 +32,7 @@ class MySqlConcurrencyTest {
     @Test void mysqlLocksUniqueConstraintsAndWorkerAreCompatible() throws Exception {
         try(var pool=Executors.newFixedThreadPool(8)) {
             var calls=new ArrayList<Callable<Boolean>>();
-            for(int i=0;i<20;i++) {String id="message-"+i;calls.add(()->service.issue(new BookingConfirmedEvent(id,1,"booking.confirmed.v1","corr-mysql",Instant.now(),"booking-mysql",new BookingConfirmedEvent.Payload("c1",101L,Instant.now(),List.of(new BookingConfirmedEvent.Item(501L),new BookingConfirmedEvent.Item(502L))))));}
+            for(int i=0;i<20;i++) {String id="message-"+i;calls.add(()->service.issue(new BookingConfirmedEvent(id,1,"booking.confirmed.v1","corr-mysql",Instant.now(),"booking-mysql",new BookingConfirmedEvent.Payload("c1","event-101",Instant.now(),List.of(new BookingConfirmedEvent.Item("seat-501"),new BookingConfirmedEvent.Item("seat-502"))))));}
             int created=0;for(var result:pool.invokeAll(calls)) if(result.get(30,TimeUnit.SECONDS))created++;
             assertThat(created).isEqualTo(1);
         }

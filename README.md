@@ -90,10 +90,10 @@ docker compose ps
 | Ticket service | http://localhost:8084 | `smart-event-ticket-service` |
 | Event service | http://localhost:9091 | `smart-event-event-service` |
 | Payment service | http://localhost:9090 | `smart-event-payment-service` |
-| MySQL | `localhost:3306` | `smart-event-mysql` |
+| MySQL | `localhost:3307` | `smart-event-mysql` |
 | Kafka for host clients | `localhost:9092` | `smart-event-kafka` |
 
-The services communicate over the Compose network using `mysql:3306` and `kafka:19092`. Containers should use these internal addresses; `localhost` inside a container refers to that container itself.
+The services communicate over the Compose network using `mysql:3306` and `kafka:19092`. Host tools connect to MySQL through `localhost:3307` and Kafka through `localhost:9092`. Containers should use the internal addresses; `localhost` inside a container refers to that container itself.
 
 The UI currently uses local mock data, so its screens are a prototype and do not exercise the backend APIs. Consult each service README for endpoints and service-specific behavior.
 
